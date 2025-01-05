@@ -1,7 +1,4 @@
 
-Download a program from site  and locate it in this folder.
-- https://support.illumina.com/downloads/illumina-microarray-analytics-array-analysis-cli-v2-installers.html
-
 # Env
 
 ```
@@ -26,17 +23,17 @@ aws ecr get-login-password --region ${aws_region} | docker login --username AWS 
 # Docker build
 
 ```
-docker build -t illumina-array-analysis-cli .
+docker build -t bcftools .
 ```
 
 # Docker tag
 
 ```
-docker tag illumina-array-analysis-cli:latest ${account_id}.dkr.ecr.${aws_region}.amazonaws.com/illumina-array-analysis-cli:latest
+docker tag bcftools:latest ${account_id}.dkr.ecr.${aws_region}.amazonaws.com/bcftools:latest
 ```
 
 # Docker push
 
 ```
-docker push ${account_id}.dkr.ecr.${aws_region}.amazonaws.com/illumina-array-analysis-cli:latest
+docker push ${account_id}.dkr.ecr.${aws_region}.amazonaws.com/bcftools:latest
 ```

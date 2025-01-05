@@ -8,6 +8,8 @@ params.csv_manifest = ''
 params.cluster_file = ''
 params.reference_fa = ''
 
+params.ecr_registry = ''
+
 params.gsa_idats_dir = ''
 params.results_dir = ''
 
@@ -42,7 +44,7 @@ process validateParams {
 
     script:
     """
-    #!/usr/bin/python3
+    #!/usr/bin/env python3
 
     import os
     import multiprocessing
@@ -62,6 +64,10 @@ process validateParams {
 }
 
 process GtcToVcf {
+    container params.ecr_registry + 'illumina-array-analysis-cli'
+
+    memory '16 GB' 
+
     input:
     path csv_manifest
     path bpm_manifest
@@ -82,6 +88,10 @@ process GtcToVcf {
 }
 
 process callGenotypes {
+    container params.ecr_registry + 'illumina-array-analysis-cli'
+
+    memory '24 GB' 
+
     input: 
     path bpm_manifest
     path cluster_file
@@ -98,6 +108,8 @@ process callGenotypes {
 }
 
 process indexVCF {
+    container params.ecr_registry + 'bcftools'
+
     input:
     path vcf_files_dir
 
@@ -117,6 +129,10 @@ process indexVCF {
 }
 
 process mergeVCF {
+    container params.ecr_registry + 'bcftools'
+    
+    memory '12 GB' 
+
     input:
     path vcf_files_dir
 
@@ -133,6 +149,8 @@ process mergeVCF {
 }
 
 process filterVCF {
+    container params.ecr_registry + 'bcftools'
+
     input:
     path vcf_file
 
@@ -147,7 +165,28 @@ process filterVCF {
     """
 }
 
+process extractGenotypes {
+    container params.ecr_registry + 'plink'
 
+    publishDir "$params.results_dir/flow_one", mode: 'copy', overwrite: true, pattern: 'genotypes.vcf.gz'
+    publishDir "$params.results_dir/flow_one", mode: 'copy', overwrite: true, pattern: '*.log'
+
+    input:
+    path filtered_merged_vcf_file
+
+    output: 
+    path 'genotype_table.traw', emit: traw
+    path 'genotypes.vcf.gz', emit: vcf
+    path '*.log'
+
+    script: 
+    """
+
+    plink --vcf $filtered_merged_vcf_file --maf ${params.MAF} --hwe ${params.HWE} --geno ${params.GENO} --autosome --recode A-transpose -out genotype_table
+    plink --vcf $filtered_merged_vcf_file --maf ${params.MAF} --hwe ${params.HWE} --geno ${params.GENO} --autosome --recode vcf bgz -out genotypes
+
+    """
+}
 
 workflow {
     // Params
@@ -170,5 +209,6 @@ workflow {
     indexed_vcf_dir = indexVCF( vcf_dir )
     merged_vcf = mergeVCF( indexed_vcf_dir )
     filtered_merged_vcf = filterVCF( merged_vcf )
-    
+
+    genotypes = extractGenotypes ( filtered_merged_vcf )
 }
