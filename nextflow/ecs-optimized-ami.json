@@ -1,0 +1,52 @@
+{
+  "variables": {
+    "aws_region": "ap-northeast-2",
+    "instance_type": "t3.medium",
+    "ami_name": "ecs-optimized-custom-ami-{{timestamp}}"
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "{{user `aws_region`}}",
+      "instance_type": "{{user `instance_type`}}",
+      "source_ami_filter": {
+        "filters": {
+          "name": "amzn2-ami-ecs-hvm-*-x86_64-ebs",
+          "root-device-type": "ebs",
+          "virtualization-type": "hvm"
+        },
+        "owners": ["amazon"],
+        "most_recent": true
+      },
+      "ssh_username": "ec2-user",
+      "ami_name": "{{user `ami_name`}}",
+      "ami_description": "Custom ECS-optimized AMI with additional tools",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/xvda",
+          "volume_size": 100,
+          "volume_type": "gp3",
+          "delete_on_termination": true
+        }
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "sudo yum update -y",
+        "sudo yum install -y bzip2 wget",
+        "cd $HOME",
+        "wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+        "bash Miniconda3-latest-Linux-x86_64.sh -b -f -p $HOME/miniconda",
+        "$HOME/miniconda/bin/conda install -c conda-forge -y awscli",
+        "rm Miniconda3-latest-Linux-x86_64.sh",
+        "echo 'export PATH=$HOME/miniconda/bin:$PATH' >> $HOME/.bashrc",
+        "sudo systemctl enable --now ecs",
+        "sudo systemctl enable docker && sudo systemctl start docker",
+        "sudo usermod -a -G docker ec2-user"
+      ]
+    }
+  ]
+}
