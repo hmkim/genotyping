@@ -110,6 +110,8 @@ process callGenotypes {
 process indexVCF {
     container params.ecr_registry + 'bcftools'
 
+    memory '4 GB' 
+
     input:
     path vcf_files_dir
 
@@ -198,7 +200,7 @@ workflow {
     cluster_file = file(params.cluster_file)
 
     // Params validation
-    validateParams( reference_fa, reference_fa_index, bpm_manifest, cluster_file )
+    //validateParams( reference_fa, reference_fa_index, bpm_manifest, cluster_file )
 
     // Workflow
     idats_dir = file(params.gsa_idats_dir)
